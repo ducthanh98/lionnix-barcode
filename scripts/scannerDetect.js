@@ -1,6 +1,8 @@
 const { ipcRenderer } = require('electron');
+const ioHook = require('iohook');
+
+
 (function() {
-    //object for storing scanner detection values
     const scannerDetection = {
         input_stack: [],
         last_input_time: null,
@@ -30,22 +32,21 @@ const { ipcRenderer } = require('electron');
         }
     };
 
-    //fire on key press down
-    document.onkeydown = function() {
+
+    ioHook.on("keydown",(e)=>{
         scannerDetection.setLastInputTime(Date.now());
-    };
+    })
 
-    //fire on key press up
-    document.onkeyup = function (e) {
-        console.log(e.key)
+
+    ioHook.on("keypress",(e)=>{
         //get key from keypress
-        e = e || window.event;
-        const key = e.key;
-
         //check if numerical, stop event handler if not numerical
-        if (key.length > 1) {
+        if (e.keychar< 48 || e.keychar > 123) {
             return;
         }
+
+        const key = String.fromCharCode(e.keychar)
+
 
         //get current time
         const currentInputTime = Date.now();
@@ -77,8 +78,6 @@ const { ipcRenderer } = require('electron');
                     // TODO decide if this should belong to prevent quick number via
                     //keyboard/pad input
                     if (scannerDetection.input_stack.length >= 5) {
-                        console.log(scannerDetection.input_stack)
-                        //DO ACTION HERE
                         const barcode = scannerDetection.input_stack.join("");
                         JsBarcode("#barcode", barcode);
                         ipcRenderer.send('print', barcode);
@@ -94,5 +93,7 @@ const { ipcRenderer } = require('electron');
             scannerDetection.resetAvgInputTime();
             scannerDetection.setInputStack([key]);
         }
-    };
+    })
+
+    ioHook.start()
 })();
